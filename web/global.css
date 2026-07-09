@@ -1,0 +1,169 @@
+:root {
+    --primary-color: #0da633;
+    --border-style: 2px outset #eee;
+    --inner-border: 1px solid #000;
+    --font-stack: "MS Sans Serif", "Tahoma", sans-serif;
+}
+
+body {
+    background-color: #c0c0c0; /* Classic Windows gray */
+    font-family: var(--font-stack);
+    margin: 0;
+    padding: 0;
+}
+
+/* Reusable 2000s "Panel" style */
+.win-panel {
+    background-color: #c0c0c0;
+    border: var(--border-style);
+    box-shadow: 1px 1px 0px #000;
+    padding: 2px;
+}
+
+.win-inset {
+    border: 2px inset #eee;
+    background-color: #fff;
+}
+
+/* Reusable buttons */
+.win-btn {
+    background-color: #c0c0c0;
+    border: var(--border-style);
+    padding: 3px 10px;
+    font-family: var(--font-stack);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.win-btn:active {
+    border: 2px inset #eee;
+    padding: 4px 9px 2px 11px;
+}
+
+/* Catalog Grid */
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 30px;
+    justify-content: center;
+}
+
+.media-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #c0c0c0;
+    border: var(--border-style);
+    padding: 10px;
+    cursor: pointer;
+}
+
+.media-card:hover {
+    background-color: #d0d0d0;
+}
+
+.media-poster {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border: var(--inner-border);
+    background-color: #fff;
+    margin-bottom: 10px;
+}
+
+.media-title {
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px;
+    word-wrap: break-word;
+    width: 100%;
+}
+
+.media-duration {
+    font-size: 0.85rem;
+    color: #444;
+}
+
+.hidden-video {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    border: var(--inner-border);
+}
+
+.navbar {
+    background-color: var(--primary-color);
+    border-bottom: var(--inner-border);
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    gap: 15px;
+}
+
+.navbar img {
+    height: 50px;
+    width: auto;
+}
+
+.nav-links {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-item {
+    background-color: #c0c0c0;
+    border: var(--border-style);
+    padding: 3px 10px;
+    text-decoration: none;
+    color: #000;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.nav-item:active {
+    border: 2px inset #eee;
+    padding: 4px 9px 2px 11px;
+}
+
+.nav-item:hover {
+    background-color: #d0d0d0;
+}
+
+/* Desktop Icon Style */
+.icon-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 140px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #000;
+    padding: 15px;
+    border: 1px solid transparent;
+}
+
+.desktop-icon:hover {
+    background-color: rgba(0, 0, 128, 0.1);
+    border: 1px dotted #000080;
+}
+
+.desktop-icon img {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+}
+
+.desktop-icon span {
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    word-wrap: break-word;
+}
