@@ -5,7 +5,7 @@ from moviepy import VideoFileClip
 from mutagen import File as MutagenFile
 from config import get_sources
 
-MANIFEST_FILE = "manifest.json"
+MANIFEST_FILE = "web/manifest.json"
 SUPPORTED_MOVIE_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv')
 SUPPORTED_AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a', '.wav', '.ogg')
 SUPPORTED_COVER_FILENAMES = ('cover.jpg', 'cover.jpeg', 'cover.png')
