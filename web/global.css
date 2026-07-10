@@ -1,3 +1,7 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 :root {
     --primary-color: #0da633;
     --border-style: 2px outset #eee;
@@ -138,6 +142,33 @@ body {
 
 .nav-item:hover {
     background-color: #d0d0d0;
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 15px !important;
+    }
+    .win-inset {
+        padding: 15px !important;
+    }
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+    }
+    .media-card {
+        padding: 5px;
+    }
+    .desktop-icon {
+        width: 100px;
+        padding: 5px;
+    }
+    .desktop-icon img {
+        width: 64px;
+        height: 64px;
+    }
+    .desktop-icon span {
+        font-size: 0.95rem;
+    }
 }
 
 /* Desktop Icon Style */

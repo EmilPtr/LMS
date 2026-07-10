@@ -23,8 +23,10 @@
             align-self: flex-start;
         }
         .release-cover {
-            width: 250px;
-            height: 250px;
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            aspect-ratio: 1 / 1;
             object-fit: cover;
             border: var(--inner-border);
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
@@ -61,6 +63,24 @@
         audio {
             width: 100%;
             outline: none;
+        }
+        @media (max-width: 768px) {
+            .release-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .release-info-panel, .release-tracks-panel {
+                flex: 1 1 auto;
+                width: 100%;
+            }
+            .release-cover {
+                max-width: 200px;
+            }
+            /* Stack or optimize button sizing if needed */
+            #mode-btn {
+                min-width: unset !important;
+                flex: 1;
+            }
         }
     </style>
 </head>
