@@ -23,7 +23,7 @@ function createMovieCard(movie) {
     if (movie.thumbnail) {
         poster.src = movie.thumbnail;
     } else {
-        poster.src = './asset/placeholder.png';
+        poster.src = '../asset/placeholder.png';
     }
     poster.alt = movie.name;
     

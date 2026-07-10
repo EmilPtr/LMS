@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS - Music</title>
+    <link rel="stylesheet" href="../global.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html"><img src="../asset/logo.png" alt="LMS Logo"></a>
+    </nav>
+
+    <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+        <div class="win-panel">
+            <div style="background: var(--primary-color); padding: 5px 10px; border-bottom: 1px solid #000; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                <span>Music Catalog</span>
+                <div>
+                    <button class="win-btn" id="sort-alpha">Sort: A-Z</button>
+                    <button class="win-btn" id="sort-tracks">Sort: Tracks</button>
+                </div>
+            </div>
+            <div class="win-inset" style="padding: 40px;">
+                <div id="music-grid" class="catalog-grid">
+                    <!-- Music cards injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="music.js"></script>
+</body>
+</html>

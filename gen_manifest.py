@@ -152,7 +152,9 @@ def scan_music():
                         elif os.path.isfile(file_path) and not filename.lower().endswith(SUPPORTED_COVER_FILENAMES): print(f"[WARN] Invalid file at {file_path}")
                     
                     if songs: # Only add release if it has songs
+                        release_id = re.sub(r'[^a-zA-Z0-9]+', '-', release_folder.lower()).strip('-')
                         releases.append({
+                            "id": release_id,
                             "name": release_folder,
                             "cover": cover_url,
                             "songs": songs
