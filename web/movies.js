@@ -37,25 +37,14 @@ function createMovieCard(movie) {
     duration.className = 'media-duration';
     duration.textContent = formatDuration(movie.length);
     
-    // Video element (hidden initially)
-    const video = document.createElement('video');
-    video.className = 'hidden-video';
-    video.src = movie.location;
-    video.controls = true;
-    
-    // Add click event to swap poster with video
+    // Add click event to navigate to playback page
     card.addEventListener('click', () => {
-        if (video.style.display === 'none' || video.style.display === '') {
-            poster.style.display = 'none';
-            video.style.display = 'block';
-            video.play();
-        }
+        window.location.href = `watch.html?id=${movie.id}`;
     });
 
     card.appendChild(poster);
     card.appendChild(title);
     card.appendChild(duration);
-    card.appendChild(video);
     
     return card;
 }
@@ -73,7 +62,7 @@ function renderMovies(movies) {
 // Load manifest
 async function loadManifest() {
     try {
-        const response = await fetch('./manifest.json');
+        const response = await fetch('../manifest.json');
         const manifest = await response.json();
         
         if (manifest.movies) {

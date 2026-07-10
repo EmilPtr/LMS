@@ -1,12 +1,13 @@
 import os
 import json
 import sys
+import re
 from moviepy import VideoFileClip
 from mutagen import File as MutagenFile
 from config import get_sources
 
-MANIFEST_FILE = "web/manifest.json"
-SUPPORTED_MOVIE_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv')
+MANIFEST_FILE = "manifest.json"
+SUPPORTED_MOVIE_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm')
 SUPPORTED_AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a', '.wav', '.ogg')
 SUPPORTED_COVER_FILENAMES = ('cover.jpg', 'cover.jpeg', 'cover.png')
 SUPPORTED_THUMBNAIL_EXTENSIONS = ('.jpg', '.jpeg', '.png')
@@ -37,6 +38,20 @@ def get_audio_duration(file_path):
     except Exception:
         pass
     return 0
+
+def convert_to_media_url(file_path, source_name, source_path):
+    if not file_path:
+        return None
+    # Get the relative path from the source root
+    try:
+        # Use relpath to find path relative to source directory
+        relative_path = os.path.relpath(file_path, source_path)
+        # Convert any Windows backslashes to forward slashes for URLs
+        relative_path = relative_path.replace(os.sep, '/')
+        # Return the formatted URL
+        return f"/media/{source_name}/{relative_path}"
+    except ValueError:
+        return None # If it's not relative to the source
 
 def find_thumbnail(thumbnails_dir, movie_name):
     if not os.path.exists(thumbnails_dir) or not os.path.isdir(thumbnails_dir):
@@ -71,15 +86,21 @@ def scan_movies():
 
                     # Gather information
                     name = os.path.splitext(filename)[0]
+                    movie_id = re.sub(r'[^a-zA-Z0-9]+', '-', name.lower()).strip('-')
                     duration = get_video_duration(file_path)
-                    thumbnail = find_thumbnail(thumbnails_dir, name)
+                    thumbnail_path = find_thumbnail(thumbnails_dir, name)
+                    
+                    media_location = convert_to_media_url(file_path, source_name, source_path)
+                    thumbnail = convert_to_media_url(thumbnail_path, source_name, source_path)
+
                     if thumbnail: print(f"[OK] Thumbnail located in '{thumbnail}'")
                     else: print(f"[WARN] Thumbnail not found for {name}")
 
                     # Add to manifest
                     movies.append({
+                        "id": movie_id,
                         "name": name,
-                        "location": file_path,
+                        "location": media_location,
                         "length": duration,
                         "thumbnail": thumbnail
                     })
@@ -112,6 +133,8 @@ def scan_music():
                             break
                     if cover_path == None: print(f"[WARN] Cover file not found in {release_path}")
 
+                    cover_url = convert_to_media_url(cover_path, source_name, source_path)
+
                     songs = []
                     # Scan for audio files in release folder
                     for filename in os.listdir(release_path):
@@ -119,9 +142,10 @@ def scan_music():
                         if os.path.isfile(file_path) and filename.lower().endswith(SUPPORTED_AUDIO_EXTENSIONS):
                             name = os.path.splitext(filename)[0]
                             duration = get_audio_duration(file_path)
+                            song_url = convert_to_media_url(file_path, source_name, source_path)
                             songs.append({
                                 "name": name,
-                                "location": file_path,
+                                "location": song_url,
                                 "duration": duration
                             })
                             print(f"[OK] Added song for {release_folder}: '{name}'")
@@ -130,12 +154,100 @@ def scan_music():
                     if songs: # Only add release if it has songs
                         releases.append({
                             "name": release_folder,
-                            "cover": cover_path,
+                            "cover": cover_url,
                             "songs": songs
                         })
                 else: print(f"[ERROR] {release_path} is not a Directory")
         else: print(f"[ERROR] No Music directory found in {source_name}")
     return releases
+
+def scan_shows():
+    sources = get_sources()
+    shows = []
+
+    for source_name, source_path in sources.items():
+        shows_dir = os.path.join(source_path, "Shows")
+        if os.path.exists(shows_dir) and os.path.isdir(shows_dir):
+            print(f"Scanning shows in: {shows_dir}")
+            
+            # Every subdirectory inside Shows represents a show
+            for show_folder in os.listdir(shows_dir):
+                show_path = os.path.join(shows_dir, show_folder)
+                if os.path.isdir(show_path):
+                    print(f"[OK] Found Show: {show_folder} from source '{source_name}'")
+                    
+                    # 1. Search for thumbnail
+                    thumbnail_file = None
+                    for ext in SUPPORTED_THUMBNAIL_EXTENSIONS:
+                        thumb_name = "thumbnail" + ext
+                        thumb_path = os.path.join(show_path, thumb_name)
+                        if os.path.exists(thumb_path):
+                            thumbnail_file = os.path.abspath(thumb_path)
+                            break
+                    
+                    thumbnail_url = convert_to_media_url(thumbnail_file, source_name, source_path)
+                    if thumbnail_url:
+                        print(f"[OK] Show thumbnail located in '{thumbnail_url}'")
+                    else:
+                        print(f"[WARN] Thumbnail not found for show {show_folder}")
+                        
+                    # 2. Find and sort seasons S1, S2, etc.
+                    seasons_dict = {}
+                    for item in os.listdir(show_path):
+                        item_path = os.path.join(show_path, item)
+                        if os.path.isdir(item_path):
+                            match = re.match(r'^S(\d+)$', item, re.IGNORECASE)
+                            if match:
+                                season_num = int(match.group(1))
+                                seasons_dict[season_num] = item_path
+                                
+                    # Sort seasons numerically
+                    sorted_seasons = sorted(seasons_dict.keys())
+                    seasons_list = []
+                    
+                    for season_num in sorted_seasons:
+                        season_path = seasons_dict[season_num]
+                        episodes = []
+                        
+                        # Find all files with supported video extensions inside the season dir
+                        files_in_season = []
+                        for filename in os.listdir(season_path):
+                            file_path = os.path.abspath(os.path.join(season_path, filename))
+                            if os.path.isfile(file_path) and filename.lower().endswith(SUPPORTED_MOVIE_EXTENSIONS):
+                                files_in_season.append(filename)
+                                
+                        # Sort episodes alphabetically
+                        files_in_season.sort()
+                        
+                        for index, filename in enumerate(files_in_season):
+                            file_path = os.path.abspath(os.path.join(season_path, filename))
+                            episode_num = index + 1
+                            episode_name = f"{show_folder} - S{season_num}E{episode_num}"
+                            episode_url = convert_to_media_url(file_path, source_name, source_path)
+                            
+                            episodes.append({
+                                "name": episode_name,
+                                "location": episode_url
+                            })
+                            print(f"[OK] Added episode: '{episode_name}'")
+                            
+                        if episodes:
+                            seasons_list.append({
+                                "season": season_num,
+                                "episodes": episodes
+                            })
+                    
+                    shows.append({
+                        "name": show_folder,
+                        "thumbnail": thumbnail_url,
+                        "seasons": seasons_list
+                    })
+                else:
+                    print(f"[ERROR] {show_path} is not a Directory")
+        else:
+            print(f"[ERROR] No Shows directory found in {source_name}")
+            
+    return shows
 
 def generate_manifest():
     manifest = {}
@@ -145,6 +257,9 @@ def generate_manifest():
     
     # Scan music
     manifest["releases"] = scan_music()
+    
+    # Scan shows
+    manifest["shows"] = scan_shows()
 
     with open(MANIFEST_FILE, "w") as f:
         json.dump(manifest, f, indent=4)

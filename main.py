@@ -28,9 +28,49 @@ if command_name == "config":
             name = arguments[2]
             remove_source(name)
 
+    elif subcommand == "set-password":
+        if len(arguments) < 3:
+            print("Usage: lms config set-password <password> [username]")
+        else:
+            password = arguments[2]
+            username = arguments[3] if len(arguments) > 3 else "lms"
+            set_password(username, password)
+
+    elif subcommand == "remove-password":
+        remove_password()
+
 
 elif command_name == "generate":
     manifest = generate_manifest()
+
+elif command_name == "init":
+    import os
+    print("--- LMS Initialization Wizard ---")
+    username = input("Enter username [lms]: ").strip()
+    if not username:
+        username = "lms"
+        
+    password = input("Enter password: ").strip()
+    while not password:
+        password = input("Password cannot be empty. Enter password: ").strip()
+    
+    source_name = input("Enter media source name: ").strip()
+    while not source_name:
+        source_name = input("Source name cannot be empty. Enter media source name: ").strip()
+        
+    source_path = input("Enter media source path: ").strip()
+    while not source_path or not os.path.exists(source_path) or not os.path.isdir(source_path):
+        if not source_path:
+            source_path = input("Source path cannot be empty. Enter media source path: ").strip()
+        else:
+            source_path = input(f"Path '{source_path}' does not exist or is not a directory. Enter media source path: ").strip()
+            
+    # 1. Set password
+    set_password(username, password)
+    # 2. Add source
+    add_source(source_name, source_path)
+    # 3. Generate manifest
+    generate_manifest()
 
 else:
     print("Command not found, type 'lms help' for list of available commands.")
