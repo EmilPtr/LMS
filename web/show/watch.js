@@ -50,6 +50,8 @@ function clearPlaybackPosition(showName, seasonNumber, episodeIndex) {
     }
 }
 
+let vjsPlayer = null;
+
 // Player initialization and controller
 async function initPlayer() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -109,10 +111,45 @@ async function initPlayer() {
         document.getElementById('episode-code-display').textContent = episodeCode;
         document.getElementById('episode-title-display').textContent = episodeTitle;
 
-        const player = document.getElementById('video-player');
-        player.src = episode.location;
-        if (show.thumbnail) {
-            player.poster = show.thumbnail;
+        // Initialize Video.js Player via centralized module
+        vjsPlayer = LMSPlayer.createPlayer('video-player');
+
+        if (vjsPlayer) {
+            vjsPlayer.src({ src: episode.location });
+            if (show.thumbnail) {
+                vjsPlayer.poster(show.thumbnail);
+            }
+
+            // Handle resume playback position
+            const savedTime = getSavedPosition(showName, seasonNumber, episodeIndex);
+            if (savedTime > 0) {
+                vjsPlayer.on('loadedmetadata', () => {
+                    vjsPlayer.currentTime(savedTime);
+                });
+            }
+
+            // Save progress tracking variables
+            let lastSavedSec = -1;
+
+            // Save progress periodically on timeupdate
+            vjsPlayer.on('timeupdate', () => {
+                const currentSec = Math.floor(vjsPlayer.currentTime());
+                // Save every 3 seconds to avoid writing too frequently
+                if (currentSec !== lastSavedSec && currentSec % 3 === 0) {
+                    lastSavedSec = currentSec;
+                    savePlaybackPosition(showName, seasonNumber, episodeIndex, episodeTitle, vjsPlayer.currentTime());
+                }
+            });
+
+            // Save progress on pause
+            vjsPlayer.on('pause', () => {
+                savePlaybackPosition(showName, seasonNumber, episodeIndex, episodeTitle, vjsPlayer.currentTime());
+            });
+
+            // Clear progress when episode finishes
+            vjsPlayer.on('ended', () => {
+                clearPlaybackPosition(showName, seasonNumber, episodeIndex);
+            });
         }
 
         // Build flat episode list across all seasons for next/prev traversing
@@ -158,42 +195,6 @@ async function initPlayer() {
             nextBtn.style.display = 'none';
         }
 
-        // Handle resume playback position
-        const savedTime = getSavedPosition(showName, seasonNumber, episodeIndex);
-        if (savedTime > 0) {
-            player.addEventListener('loadedmetadata', () => {
-                player.currentTime = savedTime;
-            }, { once: true });
-        }
-
-        // Save progress tracking variables
-        let lastSavedSec = -1;
-
-        // Save progress periodically on timeupdate
-        player.addEventListener('timeupdate', () => {
-            const currentSec = Math.floor(player.currentTime);
-            // Save every 3 seconds to avoid writing too frequently
-            if (currentSec !== lastSavedSec && currentSec % 3 === 0) {
-                lastSavedSec = currentSec;
-                savePlaybackPosition(showName, seasonNumber, episodeIndex, episodeTitle, player.currentTime);
-            }
-        });
-
-        // Save progress on pause
-        player.addEventListener('pause', () => {
-            savePlaybackPosition(showName, seasonNumber, episodeIndex, episodeTitle, player.currentTime);
-        });
-
-        // Save progress on window/page exit
-        window.addEventListener('beforeunload', () => {
-            savePlaybackPosition(showName, seasonNumber, episodeIndex, episodeTitle, player.currentTime);
-        });
-
-        // Clear progress when episode finishes
-        player.addEventListener('ended', () => {
-            clearPlaybackPosition(showName, seasonNumber, episodeIndex);
-        });
-
         // Show player view
         document.getElementById('player-view').style.display = 'flex';
 
@@ -208,5 +209,12 @@ function showError(msg) {
     document.getElementById('error-message').textContent = msg;
     document.getElementById('error-view').style.display = 'block';
 }
+
+// Clean up player on window/page exit
+window.addEventListener('beforeunload', () => {
+    if (vjsPlayer) {
+        vjsPlayer.dispose();
+    }
+});
 
 document.addEventListener('DOMContentLoaded', initPlayer);

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LMS - Watch Movie</title>
     <link rel="stylesheet" href="../global.css">
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         .player-container {
             display: flex;
@@ -14,7 +15,8 @@
             width: 100%;
             height: 100%;
         }
-        video.playback-video {
+        /* Style the Video.js container with LMS design language */
+        .video-js.playback-video-container {
             width: 100%;
             max-height: 70vh;
             border: var(--inner-border);
@@ -45,9 +47,12 @@
             </div>
             <div class="win-inset" style="padding: 20px;">
                 <div id="player-view" class="player-container" style="display: none;">
-                    <video id="video-player" class="playback-video" controls autoplay>
-                        Your browser does not support the video tag.
-                    </video>
+                    <!-- Wrapper container for Video.js responsive setup -->
+                    <div style="width: 100%;">
+                        <video id="video-player" class="video-js vjs-default-skin playback-video-container" controls preload="auto">
+                            Your browser does not support Video.js.
+                        </video>
+                    </div>
                     <div id="movie-title" style="font-size: 1.3rem; font-weight: bold; margin-top: 15px; width: 100%; text-align: left;"></div>
                     <div id="movie-duration" style="font-size: 1rem; color: #444; width: 100%; text-align: left; margin-top: 5px;"></div>
                 </div>
@@ -59,6 +64,8 @@
         </div>
     </main>
 
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="../player-common.js"></script>
     <script src="watch.js"></script>
 </body>
 </html>

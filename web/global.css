@@ -208,3 +208,27 @@ body {
     text-align: center;
     word-wrap: break-word;
 }
+
+/* Video.js LMS Theme Customizations */
+.video-js .vjs-big-play-button {
+    background-color: rgba(13, 166, 51, 0.8) !important; /* LMS Green */
+    border: var(--inner-border) !important;
+    border-radius: 0px !important; /* Classic Windows square buttons */
+    box-shadow: 1px 1px 0px #000;
+}
+
+.video-js:hover .vjs-big-play-button, .video-js .vjs-big-play-button:focus {
+    background-color: #0da633 !important;
+}
+
+.video-js .vjs-play-progress, .video-js .vjs-volume-level {
+    background-color: #0da633 !important;
+}
+
+.video-js .vjs-slider {
+    background-color: #444 !important;
+}
+
+.video-js {
+    font-family: "MS Sans Serif", "Tahoma", sans-serif !important;
+}

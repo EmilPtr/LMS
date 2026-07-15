@@ -6,6 +6,8 @@ function formatDuration(seconds) {
     return `${mins}m`;
 }
 
+let vjsPlayer = null;
+
 async function initPlayer() {
     const urlParams = new URLSearchParams(window.location.search);
     const movieId = urlParams.get('id');
@@ -31,15 +33,19 @@ async function initPlayer() {
             return;
         }
 
-        // Setup the player
+        // Setup the details
         document.getElementById('movie-title-header').textContent = `Playing: ${movie.name}`;
         document.getElementById('movie-title').textContent = movie.name;
         document.getElementById('movie-duration').textContent = `Duration: ${formatDuration(movie.length)}`;
         
-        const player = document.getElementById('video-player');
-        player.src = movie.location;
-        if (movie.thumbnail) {
-            player.poster = movie.thumbnail;
+        // Initialize Video.js Player via centralized module
+        vjsPlayer = LMSPlayer.createPlayer('video-player');
+        
+        if (vjsPlayer) {
+            vjsPlayer.src({ src: movie.location });
+            if (movie.thumbnail) {
+                vjsPlayer.poster(movie.thumbnail);
+            }
         }
 
         document.getElementById('player-view').style.display = 'flex';
@@ -54,5 +60,12 @@ function showError(msg) {
     document.getElementById('error-message').textContent = msg;
     document.getElementById('error-view').style.display = 'block';
 }
+
+// Clean up player on page unload
+window.addEventListener('beforeunload', () => {
+    if (vjsPlayer) {
+        vjsPlayer.dispose();
+    }
+});
 
 document.addEventListener('DOMContentLoaded', initPlayer);
