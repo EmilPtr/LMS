@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS - Show Details</title>
+    <link rel="stylesheet" href="../global.css">
+    <style>
+        .show-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .show-info-panel {
+            flex: 1 1 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .show-seasons-panel {
+            flex: 2 2 500px;
+            height: fit-content;
+            align-self: flex-start;
+        }
+        .show-cover {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            border: var(--inner-border);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        .season-accordion {
+            margin-bottom: 15px;
+            border: var(--border-style);
+            box-shadow: 1px 1px 0px #000;
+        }
+        .season-header {
+            background-color: #c0c0c0;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid transparent;
+            user-select: none;
+        }
+        .season-header:hover {
+            background-color: #d0d0d0;
+        }
+        .season-header.active {
+            border-bottom: var(--inner-border);
+            background-color: #e0e0e0;
+        }
+        .season-header::after {
+            content: "▼";
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+        .season-header.active::after {
+            transform: rotate(-180deg);
+        }
+        .season-episodes {
+            display: none;
+            background-color: #fff;
+            padding: 5px;
+        }
+        .episode-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .episode-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .episode-item:hover {
+            background-color: rgba(0, 0, 128, 0.05);
+            border: 1px dotted #888;
+        }
+        .episode-num {
+            font-weight: bold;
+            color: #555;
+            margin-right: 15px;
+        }
+        @media (max-width: 768px) {
+            .show-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .show-info-panel, .show-seasons-panel {
+                flex: 1 1 auto;
+                width: 100%;
+            }
+            .show-cover {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html"><img src="../asset/logo.png" alt="LMS Logo"></a>
+    </nav>
+
+    <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+        <div class="win-panel" id="show-panel">
+            <div style="background: var(--primary-color); padding: 5px 10px; border-bottom: 1px solid #000; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                <span id="show-header-title">Loading Show...</span>
+                <button class="win-btn" onclick="window.location.href='shows.html'">Back to Catalog</button>
+            </div>
+            <div class="win-inset" style="padding: 40px;">
+                <div id="show-content" class="show-container" style="display: none;">
+                    
+                    <!-- Left: Show Info -->
+                    <div class="show-info-panel">
+                        <img id="show-cover-img" class="show-cover" src="" alt="Show Cover">
+                        <h2 id="show-title-display" style="margin: 0 0 10px 0; font-size: 1.5rem; text-align: center;"></h2>
+                        <div id="show-episodes-count" style="font-size: 1rem; color: #444; margin-bottom: 20px;"></div>
+                    </div>
+
+                    <!-- Right: Seasons & Episodes Accordion -->
+                    <div class="show-seasons-panel">
+                        <div id="seasons-container">
+                            <!-- Seasons accordion list will be injected here -->
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="error-view" style="display: none; text-align: center; padding: 40px;">
+                    <h2 style="color: red; font-weight: bold;">Error: Show Not Found</h2>
+                    <p id="error-message">The requested show could not be located in the manifest.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="show.js"></script>
+</body>
+</html>

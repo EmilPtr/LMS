@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS - Shows</title>
+    <link rel="stylesheet" href="../global.css">
+    <style>
+        .shows-main {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+        }
+        .catalog-panel {
+            flex: 1;
+        }
+        @media (max-width: 992px) {
+            .shows-main {
+                flex-direction: column;
+                padding: 15px !important;
+            }
+            .catalog-panel {
+                width: 100%;
+            }
+            #continue-watching-panel {
+                width: 100% !important;
+            }
+            #continue-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                gap: 15px !important;
+            }
+            #continue-watching-panel .win-inset {
+                padding: 15px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html"><img src="../asset/logo.png" alt="LMS Logo"></a>
+    </nav>
+
+    <main class="shows-main">
+        <!-- TV Shows Catalog -->
+        <div class="win-panel catalog-panel">
+            <div style="background: var(--primary-color); padding: 5px 10px; border-bottom: 1px solid #000; font-weight: bold;">
+                <span>TV Shows Catalog</span>
+            </div>
+            <div class="win-inset" style="padding: 40px;">
+                <div id="show-grid" class="catalog-grid">
+                    <!-- Show cards injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Continue Watching Section -->
+        <div class="win-panel" id="continue-watching-panel" style="display: none; width: 280px; flex-shrink: 0;">
+            <div style="background: var(--primary-color); padding: 5px 10px; border-bottom: 1px solid #000; font-weight: bold;">
+                <span>Continue Watching</span>
+            </div>
+            <div class="win-inset" style="padding: 30px;">
+                <div id="continue-grid" class="catalog-grid" style="grid-template-columns: 1fr; gap: 0;">
+                    <!-- Continue watching cards here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="shows.js"></script>
+</body>
+</html>
