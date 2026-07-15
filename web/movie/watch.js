@@ -50,6 +50,25 @@ async function initPlayer() {
             LMSPlayer.setSubtitles(vjsPlayer, movie.subtitles);
         }
 
+        // Setup external stream links
+        const streamUrl = window.location.origin + movie.location;
+        const extLink = document.getElementById('external-stream-link');
+        const copyBtn = document.getElementById('copy-stream-btn');
+        if (extLink) extLink.href = streamUrl;
+        if (copyBtn) {
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(streamUrl).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = "Copied!";
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error("Could not copy URL:", err);
+                });
+            };
+        }
+
         document.getElementById('player-view').style.display = 'flex';
     } catch (err) {
         console.error("Error loading movie:", err);

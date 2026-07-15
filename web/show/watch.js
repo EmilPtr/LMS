@@ -122,6 +122,25 @@ async function initPlayer() {
             // Load subtitles from manifest if available
             LMSPlayer.setSubtitles(vjsPlayer, episode.subtitles);
 
+            // Setup external stream links
+            const streamUrl = window.location.origin + episode.location;
+            const extLink = document.getElementById('external-stream-link');
+            const copyBtn = document.getElementById('copy-stream-btn');
+            if (extLink) extLink.href = streamUrl;
+            if (copyBtn) {
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(streamUrl).then(() => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = "Copied!";
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    }).catch(err => {
+                        console.error("Could not copy URL:", err);
+                    });
+                };
+            }
+
             // Handle resume playback position
             const savedTime = getSavedPosition(showName, seasonNumber, episodeIndex);
             if (savedTime > 0) {
