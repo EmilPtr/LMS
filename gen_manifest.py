@@ -63,6 +63,70 @@ def find_thumbnail(thumbnails_dir, movie_name):
             return os.path.abspath(thumb_path)
     return None
 
+def find_subtitles(video_path, source_name, source_path):
+    subtitles = []
+    video_dir = os.path.dirname(video_path)
+    video_filename = os.path.basename(video_path)
+    video_base, _ = os.path.splitext(video_filename)
+    
+    if not os.path.exists(video_dir):
+        return subtitles
+        
+    for filename in os.listdir(video_dir):
+        file_path = os.path.join(video_dir, filename)
+        if not os.path.isfile(file_path):
+            continue
+            
+        # Look for subtitle files associated with this video
+        # e.g., MyVideo.vtt, MyVideo.en.vtt, MyVideo.ja.vtt
+        if filename.lower().startswith(video_base.lower() + ".") and filename.lower().endswith('.vtt'):
+            suffix = filename[len(video_base):] # ".en.vtt" or ".vtt"
+            if suffix.lower().endswith('.vtt'):
+                part = suffix[:-4] # remove .vtt
+                if part.startswith('.'):
+                    code = part[1:].lower()
+                else:
+                    code = 'en' # default code
+            else:
+                code = 'en'
+                
+            if not code:
+                code = 'en'
+                
+            language_map = {
+                'en': 'English',
+                'es': 'Spanish',
+                'fr': 'French',
+                'de': 'German',
+                'it': 'Italian',
+                'ja': 'Japanese',
+                'ko': 'Korean',
+                'zh': 'Chinese',
+                'pt': 'Portuguese',
+                'ru': 'Russian',
+                'ar': 'Arabic',
+                'hi': 'Hindi',
+                'nl': 'Dutch',
+                'sv': 'Swedish',
+                'no': 'Norwegian',
+                'da': 'Danish',
+                'fi': 'Finnish',
+                'pl': 'Polish',
+                'tr': 'Turkish',
+            }
+            language = language_map.get(code.lower(), code.upper())
+            
+            sub_url = convert_to_media_url(os.path.abspath(file_path), source_name, source_path)
+            if sub_url:
+                subtitles.append({
+                    "language": language,
+                    "code": code,
+                    "location": sub_url
+                })
+                print(f"[OK] Located subtitle track: {language} ({code}) -> {sub_url}")
+                
+    return subtitles
+
 def scan_movies():
     sources = get_sources()
     movies = []
@@ -97,12 +161,14 @@ def scan_movies():
                     else: print(f"[WARN] Thumbnail not found for {name}")
 
                     # Add to manifest
+                    subtitles = find_subtitles(file_path, source_name, source_path)
                     movies.append({
                         "id": movie_id,
                         "name": name,
                         "location": media_location,
                         "length": duration,
-                        "thumbnail": thumbnail
+                        "thumbnail": thumbnail,
+                        "subtitles": subtitles
                     })
 
                     print(f"[OK] Added Movie: {name} from source '{source_name}'")
@@ -226,10 +292,12 @@ def scan_shows():
                             episode_num = index + 1
                             episode_name = f"{show_folder} - S{season_num}E{episode_num}"
                             episode_url = convert_to_media_url(file_path, source_name, source_path)
+                            subtitles = find_subtitles(file_path, source_name, source_path)
                             
                             episodes.append({
                                 "name": episode_name,
-                                "location": episode_url
+                                "location": episode_url,
+                                "subtitles": subtitles
                             })
                             print(f"[OK] Added episode: '{episode_name}'")
                             

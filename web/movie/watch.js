@@ -46,6 +46,8 @@ async function initPlayer() {
             if (movie.thumbnail) {
                 vjsPlayer.poster(movie.thumbnail);
             }
+            // Load subtitles from manifest if available
+            LMSPlayer.setSubtitles(vjsPlayer, movie.subtitles);
         }
 
         document.getElementById('player-view').style.display = 'flex';

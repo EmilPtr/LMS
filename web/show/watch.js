@@ -119,6 +119,8 @@ async function initPlayer() {
             if (show.thumbnail) {
                 vjsPlayer.poster(show.thumbnail);
             }
+            // Load subtitles from manifest if available
+            LMSPlayer.setSubtitles(vjsPlayer, episode.subtitles);
 
             // Handle resume playback position
             const savedTime = getSavedPosition(showName, seasonNumber, episodeIndex);
