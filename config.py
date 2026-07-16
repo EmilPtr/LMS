@@ -36,12 +36,15 @@ def generate_caddyfile():
         ""
     ]
     
-    # Basic auth if configured (exempting thumbnails/covers)
+    # Basic auth if configured (exempting thumbnails/covers and localhost)
     if username and caddy_hash:
         lines.extend([
             "    # Basic Auth",
             "    @auth_exempt {",
-            "        path *Thumbnails* *cover* *thumbnail*",
+            "        or {",
+            "            path *Thumbnails* *cover* *thumbnail*",
+            "            remote_ip 127.0.0.1 ::1",
+            "        }",
             "    }",
             "    basic_auth not @auth_exempt {",
             f"        {username} {caddy_hash}",
@@ -87,7 +90,8 @@ def generate_fail2ban_config(interactive=True):
         f"logpath = {LOG_DIR}/access.log",
         "maxretry = 5",
         "bantime  = 3600",
-        "findtime = 600"
+        "findtime = 600",
+        "ignoreip = 127.0.0.1/8 ::1"
     ]
     with open(FAIL2BAN_JAIL_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
