@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo-enlarged.png">
+</p>
+
 # LMS - Lime's Media Server
 
 LMS (Lime's Media Server) is a self-hosted media server for movies, TV shows, and music. It uses Caddy for web serving, Systemd for service management, and Linux Access Control Lists (ACLs) for permission handling.
