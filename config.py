@@ -116,15 +116,27 @@ def generate_fail2ban_config(interactive=True):
 def generate_systemd_unit():
     lines = [
         "[Unit]",
-        "Description=LMS Caddy Server",
+        "Description=LMS (Library/Media Server) - Caddy Web Gateway",
         "After=network.target",
         "",
         "[Service]",
+        "Type=simple",
+        # Use EnvironmentFile if it exists, otherwise fallback to direct env var
+        "EnvironmentFile=-/etc/lms.env",
         f"Environment=\"LMS_HOME={LMS_HOME}\"",
         f"WorkingDirectory={LMS_HOME}",
         f"ExecStart=/usr/bin/caddy run --config {CADDYFILE_PATH} --adapter caddyfile",
         "Restart=always",
+        "RestartSec=10",
         "User=lms",
+        "Group=lms",
+        "",
+        "# Security Hardening",
+        "NoNewPrivileges=true",
+        "PrivateTmp=true",
+        "ProtectSystem=full",
+        "ProtectHome=read-only",
+        f"BindPaths={LMS_HOME}",
         "",
         "[Install]",
         "WantedBy=multi-user.target"
