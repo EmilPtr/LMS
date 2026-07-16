@@ -90,28 +90,45 @@ def generate_fail2ban_config(interactive=True):
         f.write("\n".join(lines) + "\n")
     print(f"Regenerated fail2ban jail config at {FAIL2BAN_JAIL_PATH}")
     
-    # Also ensure filter exists (it's mostly static but good to have in LMS_HOME)
+    # Also ensure filter exists
     filter_path = LMS_HOME / "fail2ban_caddy_filter.conf"
-    if not filter_path.exists():
-        filter_content = [
-            "[Definition]",
-            "failregex = ^.*\"remote_ip\":\"<HOST>\".*\"status\":401.*$",
-            "datepattern = \"ts\":(?P<timestamp>\\d+\\.\\d+)",
-            "ignoreregex ="
-        ]
-        with open(filter_path, "w") as f:
-            f.write("\n".join(filter_content) + "\n")
+    filter_content = [
+        "[Definition]",
+        "failregex = ^.*\"remote_ip\":\"<HOST>\".*\"status\":401.*$",
+        "datepattern = \"ts\":(?P<timestamp>\\d+\\.\\d+)",
+        "ignoreregex ="
+    ]
+    with open(filter_path, "w") as f:
+        f.write("\n".join(filter_content) + "\n")
     
-    if interactive:
-        choice = input("\nWould you like to install Fail2ban configs to /etc/fail2ban? (requires sudo) [y/N]: ").strip().lower()
-        if choice == 'y':
+    # Check for distro-specific fail2ban paths
+    f2b_jail_dir = Path("/etc/fail2ban/jail.d")
+    f2b_filter_dir = Path("/etc/fail2ban/filter.d")
+    
+    if not interactive:
+        # Non-interactive mode for installer
+        if f2b_jail_dir.exists() and f2b_filter_dir.exists():
             try:
-                subprocess.run(["sudo", "ln", "-sf", str(FAIL2BAN_JAIL_PATH), "/etc/fail2ban/jail.d/lms.conf"], check=True)
-                subprocess.run(["sudo", "ln", "-sf", str(filter_path), "/etc/fail2ban/filter.d/caddy-auth.conf"], check=True)
+                subprocess.run(["sudo", "ln", "-sf", str(FAIL2BAN_JAIL_PATH), str(f2b_jail_dir / "lms.conf")], check=True)
+                subprocess.run(["sudo", "ln", "-sf", str(filter_path), str(f2b_filter_dir / "caddy-auth.conf")], check=True)
                 subprocess.run(["sudo", "systemctl", "restart", "fail2ban"], check=True)
-                print("[OK] Fail2ban configurations installed and service restarted.")
-            except subprocess.CalledProcessError as e:
-                print(f"[ERROR] Failed to install Fail2ban configs: {e}")
+                print("[OK] Fail2ban configurations installed (non-interactive).")
+            except Exception as e:
+                print(f"[WARN] Failed to link Fail2ban configs: {e}")
+        return
+
+    choice = input("\nWould you like to install Fail2ban configs to /etc/fail2ban? (requires sudo) [y/N]: ").strip().lower()
+    if choice == 'y':
+        if not f2b_jail_dir.exists() or not f2b_filter_dir.exists():
+            print("[ERROR] Fail2ban directories not found. Is Fail2ban installed on this distribution?")
+            return
+        try:
+            subprocess.run(["sudo", "ln", "-sf", str(FAIL2BAN_JAIL_PATH), str(f2b_jail_dir / "lms.conf")], check=True)
+            subprocess.run(["sudo", "ln", "-sf", str(filter_path), str(f2b_filter_dir / "caddy-auth.conf")], check=True)
+            subprocess.run(["sudo", "systemctl", "restart", "fail2ban"], check=True)
+            print("[OK] Fail2ban configurations installed and service restarted.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Failed to install Fail2ban configs: {e}")
 
 def generate_systemd_unit():
     lines = [
@@ -130,6 +147,10 @@ def generate_systemd_unit():
         "RestartSec=10",
         "User=lms",
         "Group=lms",
+        "",
+        "# Capability to bind privileged ports (80/443) as a non-root user",
+        "CapabilityBoundingSet=CAP_NET_BIND_SERVICE",
+        "AmbientCapabilities=CAP_NET_BIND_SERVICE",
         "",
         "# Security Hardening",
         "NoNewPrivileges=true",
