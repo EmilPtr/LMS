@@ -140,7 +140,7 @@ def generate_fail2ban_config(interactive=True):
 def generate_systemd_unit():
     lines = [
         "[Unit]",
-        "Description=LMS (Library/Media Server) - Caddy Web Gateway",
+        "Description=LMS (Lime's Media Server) - Caddy Web Gateway",
         "After=network.target",
         "",
         "[Service]",

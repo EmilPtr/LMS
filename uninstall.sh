@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# LMS (Library/Media Server) - Cleanup / Uninstaller Script
+# LMS (Lime's Media Server) - Cleanup / Uninstaller Script
 # ==============================================================================
 # This script removes LMS components to emulate a fresh install state.
 # USE WITH CAUTION: This deletes system files and configuration.

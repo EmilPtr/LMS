@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# LMS (Library/Media Server) - Professional Linux Installer
+# LMS (Lime's Media Server) - Professional Linux Installer
 # ==============================================================================
 # 
 # This script installs LMS to the current user's home directory.
@@ -268,7 +268,7 @@ EOF
 
 main() {
     echo -e "${BLUE}${BOLD}================================================================${NC}"
-    echo -e "${BLUE}${BOLD}              LMS (Library/Media Server) Installer              ${NC}"
+    echo -e "${BLUE}${BOLD}              LMS (Lime's Media Server) Installer              ${NC}"
     echo -e "${BLUE}${BOLD}================================================================${NC}"
 
     check_prerequisites

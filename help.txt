@@ -1,4 +1,4 @@
-LMS - Lightweight Media Server CLI
+LMS - Lime's Media Server CLI
 
 Usage: lms <command> [subcommand] [arguments]
 
