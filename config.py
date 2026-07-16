@@ -40,7 +40,9 @@ def generate_caddyfile():
     if username and caddy_hash:
         lines.extend([
             "    # Basic Auth",
-            "    @auth_exempt path *thumbnail* *Thumbnail* *cover* *Cover*",
+            "    @auth_exempt {",
+            "        path *Thumbnails* *cover* *thumbnail*",
+            "    }",
             "    basic_auth not @auth_exempt {",
             f"        {username} {caddy_hash}",
             "    }",
