@@ -38,11 +38,11 @@ Available Commands:
 
   config setup-systemd
     Generates a systemd service unit file (lms.service) tailored to the
-    current LMS_HOME. Provides instructions for installation.
+    current LMS_HOME. Offers to install it automatically (requires sudo).
 
   config setup-fail2ban
-    Regenerates the Fail2ban jail and filter configuration files to
-    protect against brute-force attacks.
+    Regenerates the Fail2ban jail and filter configuration files.
+    Offers to install them automatically (requires sudo).
 
   help
     Displays this help message.

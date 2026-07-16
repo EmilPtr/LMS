@@ -69,9 +69,9 @@ def generate_caddyfile():
         print(f"Warning: Could not format Caddyfile: {e}")
     
     print(f"Regenerated Caddyfile at {CADDYFILE_PATH}")
-    generate_fail2ban_config()
+    generate_fail2ban_config(interactive=False)
 
-def generate_fail2ban_config():
+def generate_fail2ban_config(interactive=True):
     lines = [
         "[caddy-auth]",
         "enabled = true",
@@ -86,6 +86,29 @@ def generate_fail2ban_config():
     with open(FAIL2BAN_JAIL_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"Regenerated fail2ban jail config at {FAIL2BAN_JAIL_PATH}")
+    
+    # Also ensure filter exists (it's mostly static but good to have in LMS_HOME)
+    filter_path = LMS_HOME / "fail2ban_caddy_filter.conf"
+    if not filter_path.exists():
+        filter_content = [
+            "[Definition]",
+            "failregex = ^.*\"remote_ip\":\"<HOST>\".*\"status\":401.*$",
+            "datepattern = \"ts\":(?P<timestamp>\\d+\\.\\d+)",
+            "ignoreregex ="
+        ]
+        with open(filter_path, "w") as f:
+            f.write("\n".join(filter_content) + "\n")
+    
+    if interactive:
+        choice = input("\nWould you like to install Fail2ban configs to /etc/fail2ban? (requires sudo) [y/N]: ").strip().lower()
+        if choice == 'y':
+            try:
+                subprocess.run(["sudo", "ln", "-sf", str(FAIL2BAN_JAIL_PATH), "/etc/fail2ban/jail.d/lms.conf"], check=True)
+                subprocess.run(["sudo", "ln", "-sf", str(filter_path), "/etc/fail2ban/filter.d/caddy-auth.conf"], check=True)
+                subprocess.run(["sudo", "systemctl", "restart", "fail2ban"], check=True)
+                print("[OK] Fail2ban configurations installed and service restarted.")
+            except subprocess.CalledProcessError as e:
+                print(f"[ERROR] Failed to install Fail2ban configs: {e}")
 
 def generate_systemd_unit():
     lines = [
@@ -106,10 +129,16 @@ def generate_systemd_unit():
     with open(SYSTEMD_SERVICE_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"Generated systemd unit file at {SYSTEMD_SERVICE_PATH}")
-    print("\nTo install the service, run:")
-    print(f"sudo ln -sf {SYSTEMD_SERVICE_PATH} /etc/systemd/system/lms.service")
-    print("sudo systemctl daemon-reload")
-    print("sudo systemctl enable --now lms")
+    
+    choice = input("\nWould you like to install the systemd service? (requires sudo) [y/N]: ").strip().lower()
+    if choice == 'y':
+        try:
+            subprocess.run(["sudo", "ln", "-sf", str(SYSTEMD_SERVICE_PATH), "/etc/systemd/system/lms.service"], check=True)
+            subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
+            subprocess.run(["sudo", "systemctl", "enable", "--now", "lms"], check=True)
+            print("[OK] Systemd service installed, enabled, and started.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Failed to install systemd service: {e}")
 
 def print_status():
     config = load_config()
