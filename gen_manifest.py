@@ -12,6 +12,7 @@ SUPPORTED_MOVIE_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.
 SUPPORTED_AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a', '.wav', '.ogg')
 SUPPORTED_COVER_FILENAMES = ('cover.jpg', 'cover.jpeg', 'cover.png')
 SUPPORTED_THUMBNAIL_EXTENSIONS = ('.jpg', '.jpeg', '.png')
+SUPPORTED_SUBTITLE_EXTENSIONS = ('.vtt', '.srt')
 
 def get_video_duration(file_path):
     old_stdout = sys.stdout
@@ -82,14 +83,15 @@ def find_subtitles(video_path, source_name, source_path):
             
         filename = item.name
         # Look for subtitle files associated with this video
-        if filename.lower().startswith(video_base.lower() + ".") and filename.lower().endswith('.vtt'):
-            suffix = filename[len(video_base):] # ".en.vtt" or ".vtt"
-            if suffix.lower().endswith('.vtt'):
-                part = suffix[:-4] # remove .vtt
-                if part.startswith('.'):
-                    code = part[1:].lower()
-                else:
-                    code = 'en' # default code
+        # e.g., MyVideo.vtt, MyVideo.en.vtt, MyVideo.ja.vtt, MyVideo.srt
+        if filename.lower().startswith(video_base.lower() + ".") and item.suffix.lower() in SUPPORTED_SUBTITLE_EXTENSIONS:
+            suffix = filename[len(video_base):] # ".en.vtt" or ".vtt" or ".srt"
+            
+            # Extract parts between dots
+            parts = suffix.split('.')
+            # parts will be like ['', 'en', 'vtt'] or ['', 'vtt']
+            if len(parts) >= 3:
+                code = parts[1].lower()
             else:
                 code = 'en'
                 
@@ -155,7 +157,7 @@ def scan_movies():
                     })
 
                     print(f"[OK] Added Movie: {name} from source '{source_name}'")
-                elif item.is_file() and item.name != "Thumbnails":
+                elif item.is_file() and item.name != "Thumbnails" and item.suffix.lower() not in SUPPORTED_SUBTITLE_EXTENSIONS:
                     print(f"[WARN] Invalid file at {item}")
         else: print(f"[ERROR] No Movies directory found in {source_name}")
     return movies

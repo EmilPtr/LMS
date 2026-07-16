@@ -84,8 +84,7 @@ def generate_fail2ban_config(interactive=True):
         f"logpath = {LOG_DIR}/access.log",
         "maxretry = 5",
         "bantime  = 3600",
-        "findtime = 600",
-        "ignoreself = false"
+        "findtime = 600"
     ]
     with open(FAIL2BAN_JAIL_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -171,6 +170,25 @@ def print_status():
     svc_exists = SYSTEMD_SERVICE_PATH.exists()
     print(f"Systemd Service: {SYSTEMD_SERVICE_PATH} ({'Exists' if svc_exists else 'Missing'})")
 
+def run_command_with_sudo_fallback(cmd, error_msg_prefix):
+    """Runs a command, and if it fails with 'Operation not permitted', asks to retry with sudo."""
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        if "Operation not permitted" in e.stderr:
+            print(f"\n[PERMISSION] {error_msg_prefix}: {e.stderr.strip()}")
+            choice = input("Would you like to retry this operation with sudo? [y/N]: ").strip().lower()
+            if choice == 'y':
+                try:
+                    subprocess.run(["sudo"] + cmd, check=True)
+                    return True
+                except subprocess.CalledProcessError as sudo_e:
+                    print(f"[ERROR] Sudo operation failed: {sudo_e}")
+        else:
+            print(f"[ERROR] {error_msg_prefix}: {e.stderr.strip()}")
+    return False
+
 def apply_acl(path):
     path = Path(path).resolve()
     print(f"Applying ACL permissions for 'lms' user to: {path}")
@@ -179,39 +197,37 @@ def apply_acl(path):
     for parent in reversed(list(path.parents)):
         if parent == Path('/'):
             continue
-        try:
-            subprocess.run(["setfacl", "-m", "u:lms:x", str(parent)], check=True, capture_output=True, text=True)
-            print(f"[ACL] Set traverse (x) permission on parent: {parent}")
-        except subprocess.CalledProcessError as e:
-            print(f"[ACL WARN] Failed to set traverse ACL on parent '{parent}': {e.stderr.strip()}")
+        
+        cmd = ["setfacl", "-m", "u:lms:x", str(parent)]
+        if not run_command_with_sudo_fallback(cmd, f"Failed to set traverse ACL on parent '{parent}'"):
+            print(f"[WARN] Skipping ACL for {parent}")
 
     # 2. Apply permissions recursively to current files and directories
+    # Apply rx and default rx to source directory itself first
     try:
-        subprocess.run(["setfacl", "-m", "u:lms:rx", str(path)], check=True, capture_output=True, text=True)
-        subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", str(path)], check=True, capture_output=True, text=True)
-        print(f"[ACL] Set rx and default rx on source root: {path}")
-    except subprocess.CalledProcessError as e:
-        print(f"[ACL ERROR] Failed to set ACL on source root '{path}': {e.stderr.strip()}")
+        cmd1 = ["setfacl", "-m", "u:lms:rx", str(path)]
+        cmd2 = ["setfacl", "-d", "-m", "u:lms:rx", str(path)]
+        run_command_with_sudo_fallback(cmd1, f"Failed to set rx ACL on source root '{path}'")
+        run_command_with_sudo_fallback(cmd2, f"Failed to set default rx ACL on source root '{path}'")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error applying root ACLs: {e}")
         return
 
     for root, dirs, files in os.walk(path):
         root_path = Path(root)
         for d in dirs:
             dir_path = root_path / d
-            try:
-                subprocess.run(["setfacl", "-m", "u:lms:rx", str(dir_path)], check=True, capture_output=True, text=True)
-                subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", str(dir_path)], check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as e:
-                print(f"[ACL WARN] Failed to set ACL on subdirectory '{dir_path}': {e.stderr.strip()}")
+            cmd1 = ["setfacl", "-m", "u:lms:rx", str(dir_path)]
+            cmd2 = ["setfacl", "-d", "-m", "u:lms:rx", str(dir_path)]
+            run_command_with_sudo_fallback(cmd1, f"Failed to set ACL on subdirectory '{dir_path}'")
+            run_command_with_sudo_fallback(cmd2, f"Failed to set default ACL on subdirectory '{dir_path}'")
                 
         for f in files:
             file_path = root_path / f
-            try:
-                subprocess.run(["setfacl", "-m", "u:lms:r", str(file_path)], check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as e:
-                print(f"[ACL WARN] Failed to set ACL on file '{file_path}': {e.stderr.strip()}")
+            cmd = ["setfacl", "-m", "u:lms:r", str(file_path)]
+            run_command_with_sudo_fallback(cmd, f"Failed to set ACL on file '{file_path}'")
                 
-    print("[ACL] ACL application completed successfully.")
+    print("[ACL] ACL application process completed.")
 
 def remove_acl(path):
     path = Path(path).resolve()
