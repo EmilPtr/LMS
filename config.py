@@ -23,7 +23,11 @@ def generate_caddyfile():
     lines = [
         ":80 {",
         "    log {",
-        f"        output file {LOG_DIR}/access.log",
+        f"        output file {LOG_DIR}/access.log {{",
+        "            roll_size 10mb",
+        "            roll_keep 5",
+        "            roll_keep_for 720h",
+        "        }",
         "    }",
         "",
         "    # Block all write/delete operations (only allow GET and HEAD)",
