@@ -91,7 +91,7 @@ install_dependencies() {
     case "$OS_ID" in
         debian|ubuntu)
             sudo apt-get update -qq
-            sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl python3 python3-venv git acl ffmpeg
+            sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl python3 python3-venv git acl ffmpeg fail2ban
             
             # Caddy Official Repository Installation (Debian/Ubuntu)
             if ! command -v caddy &>/dev/null; then
@@ -103,10 +103,10 @@ install_dependencies() {
             fi
             ;;
         arch)
-            sudo pacman -Syu --noconfirm --needed python python-virtualenv git caddy acl ffmpeg
+            sudo pacman -Syu --noconfirm --needed python python-virtualenv git caddy acl ffmpeg fail2ban
             ;;
         fedora|rhel)
-            sudo dnf install -y python3 python3-virtualenv git acl ffmpeg
+            sudo dnf install -y python3 python3-virtualenv git acl ffmpeg fail2ban
             if ! command -v caddy &>/dev/null; then
                 log "Enabling Caddy COPR repository..."
                 sudo dnf install -y 'dnf-command(copr)'
@@ -251,6 +251,19 @@ EOF
     fi
 }
 
+# Integrate Fail2ban if installed
+setup_fail2ban() {
+    if command -v fail2ban-client &>/dev/null; then
+        log "Integrating Fail2ban via LMS CLI..."
+        export LMS_HOME="$LMS_HOME"
+        "$LMS_HOME/venv/bin/python" "$LMS_HOME/main.py" config setup-fail2ban <<EOF
+n
+EOF
+    else
+        warn "Fail2ban not found. Skipping security integration."
+    fi
+}
+
 # --- Main Logic Flow ---
 
 main() {
@@ -268,6 +281,7 @@ main() {
     configure_environment
     apply_permissions
     setup_systemd
+    setup_fail2ban
 
     echo -e "\n${GREEN}${BOLD}================================================================${NC}"
     echo -e "${GREEN}${BOLD}                    Installation Successful!                    ${NC}"
