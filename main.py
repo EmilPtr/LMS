@@ -1,11 +1,21 @@
 import sys
+import paths # Ensure LMS_HOME is checked first
 from config import *
 from gen_manifest import *
+
+from paths import HELP_FILE_PATH
+
+def print_help():
+    if HELP_FILE_PATH.exists():
+        with open(HELP_FILE_PATH, 'r') as f:
+            print(f.read())
+    else:
+        print(f"Error: Help file not found at {HELP_FILE_PATH}")
 
 arguments = sys.argv[1:]
 
 if len(arguments) < 1:
-    print("Incorrect usage, type 'lms help' for list of available commands.")
+    print_help()
     sys.exit(1)
 
 command_name = arguments[0]
@@ -38,6 +48,19 @@ if command_name == "config":
 
     elif subcommand == "remove-password":
         remove_password()
+
+    elif subcommand == "setup-systemd":
+        generate_systemd_unit()
+
+    elif subcommand == "setup-fail2ban":
+        generate_fail2ban_config()
+
+    elif subcommand == "info":
+        print_status()
+
+
+elif command_name == "help":
+    print_help()
 
 
 elif command_name == "generate":
@@ -73,4 +96,5 @@ elif command_name == "init":
     generate_manifest()
 
 else:
-    print("Command not found, type 'lms help' for list of available commands.")
+    print(f"Command '{command_name}' not found.")
+    print_help()

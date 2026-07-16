@@ -1,11 +1,11 @@
 import json
 import os
 import subprocess
-
-CONFIG_FILE = "config.json"
+from pathlib import Path
+from paths import CONFIG_FILE, LOG_DIR, WEB_DIR, CADDYFILE_PATH, LMS_HOME, FAIL2BAN_JAIL_PATH, SYSTEMD_SERVICE_PATH
 
 def load_config():
-    if not os.path.exists(CONFIG_FILE):
+    if not CONFIG_FILE.exists():
         return {"sources": {}}
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
@@ -20,11 +20,12 @@ def generate_caddyfile():
     username = config.get("username")
     caddy_hash = config.get("password_hash")
     
-    workspace_dir = os.path.abspath(os.path.dirname(__file__))
-    web_dir = os.path.join(workspace_dir, "web")
-    
     lines = [
         ":80 {",
+        "    log {",
+        f"        output file {LOG_DIR}/access.log",
+        "    }",
+        "",
         "    # Block all write/delete operations (only allow GET and HEAD)",
         "    @write_ops not method GET HEAD",
         '    respond @write_ops "Method Not Allowed" 405',
@@ -41,15 +42,6 @@ def generate_caddyfile():
             ""
         ])
         
-    lines.extend([
-        "    # Serve manifest.json",
-        f"    handle /manifest.json {{",
-        f"        root * {workspace_dir}",
-        "        file_server",
-        "    }",
-        ""
-    ])
-    
     # Serve configured media sources
     for source_name, source_path in sources.items():
         lines.extend([
@@ -63,127 +55,177 @@ def generate_caddyfile():
         
     lines.extend([
         "    # Serve web frontend",
-        f"    root * {web_dir}",
+        f"    root * {WEB_DIR}",
         "    file_server",
         "}"
     ])
     
-    caddyfile_path = os.path.join(workspace_dir, "Caddyfile")
-    with open(caddyfile_path, "w") as f:
+    with open(CADDYFILE_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
-    print(f"Regenerated Caddyfile at {caddyfile_path}")
+    
+    try:
+        subprocess.run(["caddy", "fmt", "--overwrite", str(CADDYFILE_PATH)], check=True, capture_output=True)
+    except Exception as e:
+        print(f"Warning: Could not format Caddyfile: {e}")
+    
+    print(f"Regenerated Caddyfile at {CADDYFILE_PATH}")
+    generate_fail2ban_config()
+
+def generate_fail2ban_config():
+    lines = [
+        "[caddy-auth]",
+        "enabled = true",
+        "port    = http,https",
+        "filter  = caddy-auth",
+        f"logpath = {LOG_DIR}/access.log",
+        "maxretry = 5",
+        "bantime  = 3600",
+        "findtime = 600",
+        "ignoreself = false"
+    ]
+    with open(FAIL2BAN_JAIL_PATH, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"Regenerated fail2ban jail config at {FAIL2BAN_JAIL_PATH}")
+
+def generate_systemd_unit():
+    lines = [
+        "[Unit]",
+        "Description=LMS Caddy Server",
+        "After=network.target",
+        "",
+        "[Service]",
+        f"Environment=\"LMS_HOME={LMS_HOME}\"",
+        f"WorkingDirectory={LMS_HOME}",
+        f"ExecStart=/usr/bin/caddy run --config {CADDYFILE_PATH} --adapter caddyfile",
+        "Restart=always",
+        "User=lms",
+        "",
+        "[Install]",
+        "WantedBy=multi-user.target"
+    ]
+    with open(SYSTEMD_SERVICE_PATH, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"Generated systemd unit file at {SYSTEMD_SERVICE_PATH}")
+    print("\nTo install the service, run:")
+    print(f"sudo ln -sf {SYSTEMD_SERVICE_PATH} /etc/systemd/system/lms.service")
+    print("sudo systemctl daemon-reload")
+    print("sudo systemctl enable --now lms")
+
+def print_status():
+    config = load_config()
+    sources = config.get("sources", {})
+    username = config.get("username")
+    
+    print("--- LMS System Status ---")
+    print(f"LMS_HOME: {LMS_HOME}")
+    print(f"Config File: {CONFIG_FILE} ({'Exists' if CONFIG_FILE.exists() else 'Missing'})")
+    print(f"Web Directory: {WEB_DIR}")
+    print(f"Log Directory: {LOG_DIR}")
+    print(f"Caddyfile: {CADDYFILE_PATH} ({'Exists' if CADDYFILE_PATH.exists() else 'Missing'})")
+    
+    print("\nMedia Sources:")
+    if not sources:
+        print("  (No sources configured)")
+    for name, path in sources.items():
+        exists = os.path.exists(path)
+        print(f"  - {name}: {path} ({'Exists' if exists else 'NOT FOUND'})")
+        
+    print(f"\nAuthentication: {'Configured (User: ' + username + ')' if username else 'Disabled'}")
+    
+    jail_exists = FAIL2BAN_JAIL_PATH.exists()
+    print(f"Fail2ban Jail: {FAIL2BAN_JAIL_PATH} ({'Exists' if jail_exists else 'Missing'})")
+    
+    svc_exists = SYSTEMD_SERVICE_PATH.exists()
+    print(f"Systemd Service: {SYSTEMD_SERVICE_PATH} ({'Exists' if svc_exists else 'Missing'})")
 
 def apply_acl(path):
-    """
-    Applies read-only ACL permissions for the 'lms' user to the source directory.
-    - Parents: ensures execute (x) permission on all parent directories leading to the source.
-    - Source: recursively applies read-execute (rx) to directories and read (r) to files.
-    - Future files: configures default (d:) ACLs so future files inherit read (r) and directories inherit read-execute (rx).
-    """
-    if not os.path.isabs(path):
-        path = os.path.abspath(path)
-        
+    path = Path(path).resolve()
     print(f"Applying ACL permissions for 'lms' user to: {path}")
 
     # 1. Apply traverse permission to parent directories
-    parents = []
-    current = os.path.dirname(path)
-    while current and current != '/':
-        parents.append(current)
-        current = os.path.dirname(current)
-    parents.reverse()
-    
-    for parent in parents:
+    for parent in reversed(list(path.parents)):
+        if parent == Path('/'):
+            continue
         try:
-            subprocess.run(["setfacl", "-m", "u:lms:x", parent], check=True, capture_output=True, text=True)
+            subprocess.run(["setfacl", "-m", "u:lms:x", str(parent)], check=True, capture_output=True, text=True)
             print(f"[ACL] Set traverse (x) permission on parent: {parent}")
         except subprocess.CalledProcessError as e:
             print(f"[ACL WARN] Failed to set traverse ACL on parent '{parent}': {e.stderr.strip()}")
 
     # 2. Apply permissions recursively to current files and directories
-    # Apply rx and default rx to source directory itself first
     try:
-        subprocess.run(["setfacl", "-m", "u:lms:rx", path], check=True, capture_output=True, text=True)
-        subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", path], check=True, capture_output=True, text=True)
+        subprocess.run(["setfacl", "-m", "u:lms:rx", str(path)], check=True, capture_output=True, text=True)
+        subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", str(path)], check=True, capture_output=True, text=True)
         print(f"[ACL] Set rx and default rx on source root: {path}")
     except subprocess.CalledProcessError as e:
         print(f"[ACL ERROR] Failed to set ACL on source root '{path}': {e.stderr.strip()}")
         return
 
-    # Now recursively walk and apply
     for root, dirs, files in os.walk(path):
+        root_path = Path(root)
         for d in dirs:
-            dir_path = os.path.join(root, d)
+            dir_path = root_path / d
             try:
-                subprocess.run(["setfacl", "-m", "u:lms:rx", dir_path], check=True, capture_output=True, text=True)
-                subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", dir_path], check=True, capture_output=True, text=True)
+                subprocess.run(["setfacl", "-m", "u:lms:rx", str(dir_path)], check=True, capture_output=True, text=True)
+                subprocess.run(["setfacl", "-d", "-m", "u:lms:rx", str(dir_path)], check=True, capture_output=True, text=True)
             except subprocess.CalledProcessError as e:
                 print(f"[ACL WARN] Failed to set ACL on subdirectory '{dir_path}': {e.stderr.strip()}")
                 
         for f in files:
-            file_path = os.path.join(root, f)
+            file_path = root_path / f
             try:
-                subprocess.run(["setfacl", "-m", "u:lms:r", file_path], check=True, capture_output=True, text=True)
+                subprocess.run(["setfacl", "-m", "u:lms:r", str(file_path)], check=True, capture_output=True, text=True)
             except subprocess.CalledProcessError as e:
                 print(f"[ACL WARN] Failed to set ACL on file '{file_path}': {e.stderr.strip()}")
                 
     print("[ACL] ACL application completed successfully.")
 
 def remove_acl(path):
-    """
-    Removes all regular and default ACL permissions for the 'lms' user from the source directory.
-    """
-    if not os.path.isabs(path):
-        path = os.path.abspath(path)
-
-    if not os.path.exists(path):
+    path = Path(path).resolve()
+    if not path.exists():
         print(f"[ACL] Path does not exist, skipping ACL removal: {path}")
         return
 
     print(f"Removing 'lms' ACL permissions from: {path}")
 
-    # Helper to remove ACL for a single file/directory
     def remove_single_path_acl(p):
-        # Remove regular ACL
+        p_str = str(p)
         try:
-            subprocess.run(["setfacl", "-x", "u:lms", p], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            # Silently ignore if no such ACL entry or file moved/removed during walk
+            subprocess.run(["setfacl", "-x", "u:lms", p_str], check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError:
             pass
 
-        # Remove default ACL if it's a directory
-        if os.path.isdir(p):
+        if p.is_dir():
             try:
-                subprocess.run(["setfacl", "-d", "-x", "u:lms", p], check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as e:
+                subprocess.run(["setfacl", "-d", "-x", "u:lms", p_str], check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError:
                 pass
 
-    # Walk recursively and remove from bottom up to avoid issues
     for root, dirs, files in os.walk(path, topdown=False):
+        root_path = Path(root)
         for f in files:
-            remove_single_path_acl(os.path.join(root, f))
+            remove_single_path_acl(root_path / f)
         for d in dirs:
-            remove_single_path_acl(os.path.join(root, d))
+            remove_single_path_acl(root_path / d)
 
-    # Remove from root itself
     remove_single_path_acl(path)
     print("[ACL] ACL removal completed successfully.")
 
 def add_source(name, path):
-    if not os.path.exists(path) or not os.path.isdir(path):
+    path_obj = Path(path).resolve()
+    if not path_obj.exists() or not path_obj.is_dir():
         print(f"Error: Path does not exist or is not a directory: {path}")
         return
 
-    path = os.path.abspath(path)
-    apply_acl(path)
+    apply_acl(path_obj)
 
     config = load_config()
     if "sources" not in config:
         config["sources"] = {}
         
-    config["sources"][name] = path
+    config["sources"][name] = str(path_obj)
     save_config(config)
-    print(f"Added source: {name} -> {path}")
+    print(f"Added source: {name} -> {path_obj}")
     generate_caddyfile()
 
 def remove_source(name):

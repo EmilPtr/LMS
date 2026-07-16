@@ -147,7 +147,7 @@ function renderContinueWatching(manifestShows) {
 // Load manifest and initialize
 async function loadManifest() {
     try {
-        const response = await fetch('../manifest.json');
+        const response = await fetch('/manifest.json');
         const manifest = await response.json();
         
         if (manifest.shows) {

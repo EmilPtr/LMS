@@ -23,7 +23,7 @@ async function initRelease() {
     }
 
     try {
-        const response = await fetch('../manifest.json');
+        const response = await fetch('/manifest.json');
         const manifest = await response.json();
         
         if (!manifest || !manifest.releases) {

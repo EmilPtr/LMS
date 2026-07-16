@@ -1,0 +1,54 @@
+LMS - Lightweight Media Server CLI
+
+Usage: lms <command> [subcommand] [arguments]
+
+The LMS_HOME environment variable must be set to the project root directory.
+
+Available Commands:
+
+  init
+    Starts the interactive initialization wizard to set up your first user,
+    password, and media source.
+
+  generate
+    Scans all configured media sources and regenerates the manifest.json
+    file used by the web frontend.
+
+  config info
+    Displays the current system status, including LMS_HOME, configured
+    sources, and the status of configuration files.
+
+  config add-source <name> <path>
+    Adds a new media source directory.
+    - name: A unique identifier for the source (e.g., 'movies').
+    - path: The absolute path to the directory on your filesystem.
+    This also automatically applies necessary ACL permissions and
+    regenerates the Caddyfile.
+
+  config remove-source <name>
+    Removes a configured media source and its associated permissions.
+
+  config set-password <password> [username]
+    Sets or updates the authentication credentials for the web interface.
+    - password: The new plaintext password.
+    - username: Optional. Defaults to 'lms'.
+
+  config remove-password
+    Disables authentication for the web interface.
+
+  config setup-systemd
+    Generates a systemd service unit file (lms.service) tailored to the
+    current LMS_HOME. Provides instructions for installation.
+
+  config setup-fail2ban
+    Regenerates the Fail2ban jail and filter configuration files to
+    protect against brute-force attacks.
+
+  help
+    Displays this help message.
+
+Files & Directories:
+  - config.json: Stores sources and authentication hashes.
+  - Caddyfile: Generated web server configuration.
+  - web/manifest.json: Generated media catalog.
+  - log/access.log: Caddy access logs (monitored by Fail2ban).
