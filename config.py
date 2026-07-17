@@ -33,40 +33,56 @@ def generate_caddyfile():
         "    # Block all write/delete operations (only allow GET and HEAD)",
         "    @write_ops not method GET HEAD",
         '    respond @write_ops "Method Not Allowed" 405',
+        "",
+        "    # Public Matchers",
+        "    @public {",
+        "        path *Thumbnails* *cover* *thumbnail*",
+        "    }",
+        "    @lan {",
+        "        remote_ip 127.0.0.1 ::1 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 fe80::/10",
+        "    }",
         ""
     ]
-    
-    # Basic auth if configured (exempting thumbnails/covers and LAN connections)
-    if username and caddy_hash:
-        lines.extend([
-            "    # Basic Auth",
-            "    @auth_exempt {",
-            "        or {",
-            "            path *Thumbnails* *cover* *thumbnail*",
-            "            remote_ip 127.0.0.1 ::1 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 fe80::/10",
-            "        }",
-            "    }",
-            "    basic_auth not @auth_exempt {",
-            f"        {username} {caddy_hash}",
-            "    }",
-            ""
-        ])
-        
-    # Serve configured media sources
+
+    # Public handling
+    lines.append("    handle @public {")
     for source_name, source_path in sources.items():
         lines.extend([
-            f"    # Serve source: {source_name}",
-            f"    handle_path /media/{source_name}/* {{",
-            f"        root * {source_path}",
-            "        file_server",
-            "    }",
+            f"        handle_path /media/{source_name}/* {{",
+            f"            root * {source_path}",
+            "            file_server",
+            "        }",
+        ])
+    lines.append("    }")
+    lines.append("")
+
+    # Authenticated or LAN handling
+    lines.append("    handle {")
+    
+    # Basic auth (skip if LAN)
+    if username and caddy_hash:
+        lines.extend([
+            "        basic_auth not @lan {",
+            f"            {username} {caddy_hash}",
+            "        }",
             ""
         ])
-        
+
+    # Source mappings
+    for source_name, source_path in sources.items():
+        lines.extend([
+            f"        handle_path /media/{source_name}/* {{",
+            f"            root * {source_path}",
+            "            file_server",
+            "        }",
+        ])
+    
+    # Web frontend
     lines.extend([
-        "    # Serve web frontend",
-        f"    root * {WEB_DIR}",
-        "    file_server",
+        "        # Serve web frontend",
+        f"        root * {WEB_DIR}",
+        "        file_server",
+        "    }",
         "}"
     ])
     
