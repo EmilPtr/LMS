@@ -38,9 +38,6 @@ def generate_caddyfile():
         "    @public {",
         "        path *Thumbnails* *cover* *thumbnail*",
         "    }",
-        "    @lan {",
-        "        remote_ip 127.0.0.1 ::1 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 fe80::/10",
-        "    }",
         ""
     ]
 
@@ -56,7 +53,7 @@ def generate_caddyfile():
     lines.append("    }")
     lines.append("")
 
-    # 3. Default Handling (Authenticated)
+    # Authenticated handling
     lines.append("    # Handle Authenticated Requests")
     lines.append("    handle {")
     if username and caddy_hash:
@@ -106,7 +103,7 @@ def generate_fail2ban_config(interactive=True):
         "maxretry = 5",
         "bantime  = 3600",
         "findtime = 600",
-        "ignoreip = 127.0.0.1/8 ::1 192.168.0.0/16 172.16.0.0/12 10.0.0.0/8 fe80::/10"
+        "ignoreip = 127.0.0.1/8 ::1"
     ]
     with open(FAIL2BAN_JAIL_PATH, "w") as f:
         f.write("\n".join(lines) + "\n")
