@@ -11,9 +11,9 @@ LMS (Lime's Media Server) is a self-hosted media server for movies, TV shows, an
 LMS provides a web interface for browsing and playing media content from configured local directories. It uses a manifest-based architecture to catalog media without a traditional database engine.
 
 ### Core Features
-- **Web Interface:** Responsive frontend for media browsing and playback.
+- **Web Interface:** Responsive frontend for media browsing and playback. Allows network streams with VLC in case of codec errors.
 - **Security Model:** Runs as a restricted system user with ACL-based filesystem access.
-- **Web Server:** Integrated Caddy configuration with automatic HTTPS support.
+- **Web Server:** Integrated Caddy configuration and configurator.
 - **Metadata Scanning:** Automated scanning of media directories to generate `manifest.json`.
 - **Subtitles:** Support for `.vtt` and `.srt` subtitle tracks.
 - **Security Integration:** Pre-configured Fail2ban filters and hardened Systemd service unit.
@@ -94,9 +94,7 @@ curl -sSL https://raw.githubusercontent.com/EmilPtr/LMS/prod/install.sh | bash
 After the script completes, you must initialize and configure the server:
 
 1. **Initialize:** `lms init` (creates admin user and first media source).
-2. **Setup Systemd:** `lms config setup-systemd`
-3. **Setup Fail2ban:** `lms config setup-fail2ban`
-4. **Start Service:** `sudo systemctl start lms`
+2. **Start Service:** `sudo systemctl start lms`
 
 ---
 
@@ -146,25 +144,25 @@ LMS requires the following structure within media sources:
 ```text
 Source_Root/
 ├── Movies/
-│   ├── Movie Name (Year).mkv
+│   ├── Movie Name.mkv
 │   └── Thumbnails/
-│       └── Movie Name (Year).jpg
+│       └── Movie Name.jpg
 ├── Shows/
 │   ├── Show Name/
 │   │   ├── thumbnail.jpg
-│   │   └── S01/
+│   │   └── S1/
 │   │       └── Episode 01.mkv
 └── Music/
-    └── Album Name/
+    └── Release Name/
         ├── cover.jpg
         └── 01 - Song Name.mp3
 ```
 
 ### Identification Logic
-- **Movies:** Files in `Movies/`. Thumbnails in `Movies/Thumbnails/` must match filename.
-- **TV Shows:** Show folder > Season folder (`S01`, `S02`) > Episode files.
-- **Music:** Album folder > `cover.jpg/png` + audio files.
-- **Subtitles:** `.vtt` or `.srt` files matching the video filename (e.g., `Movie.mkv` and `Movie.en.vtt`).
+- **Movies:** Files in `Movies/`. Thumbnails in `Movies/Thumbnails/` must match filename, excluding file type extension.
+- **TV Shows:** Show folder > Season folder (`S1`, `S2`, `S10`) > Episode files (Automatically arranged in alphabetical order, which naturally orders them properly).
+- **Music:** Release folder > `cover.jpg/png` + audio files.
+- **Subtitles:** `.vtt` or `.srt` files matching the video filename, excluding file type and language extensions (e.g., `Movie.mkv` and `Movie.en.vtt`).
 
 ---
 
@@ -180,8 +178,8 @@ The application runs as the `lms` system user, which has no login shell and no h
 
 ### Caddy Configuration
 - **Access Control:** Rejects non-GET/HEAD requests for media and static assets.
-- **Authentication:** Basic Auth is enforced for external connections; bypassed for local network ranges (e.g., 192.168.0.0/16).
-- **Logging:** Structured access logs are stored in `log/access.log` for Fail2ban monitoring.
+- **Authentication:** Basic Auth is enforced unless otherwise disabled.
+- **Logging:** Structured access logs are stored in `log/access.log` for Fail2ban monitoring (logs are flushed periodically).
 
 ### Systemd Hardening
 `lms.service` includes:
