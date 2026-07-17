@@ -20,37 +20,36 @@ LMS provides a web interface for browsing and playing media content from configu
 
 ## Architecture
 
-LMS separates management logic from media delivery:
+LMS uses a decoupled architecture where the management CLI handles configuration and cataloging, while Caddy handles high-performance media delivery.
 
 ```mermaid
 graph TD
-    subgraph Client
-        Browser[Web Browser]
-    end
+    %% Entities
+    User((User/Admin))
+    Browser[Web Browser]
 
-    subgraph Gateway [Gateway Layer]
-        Caddy[Caddy Web Server]
-    end
-
-    subgraph Backend [Management Layer]
-        LMS_CLI[LMS CLI]
+    %% Components
+    subgraph Host [Linux Host]
+        CLI[LMS CLI]
+        Caddy[Caddy Server]
+        Media[(Media Files)]
+        WebAssets[Web Assets]
         Manifest[manifest.json]
         Caddyfile[Caddyfile]
     end
 
-    subgraph Storage [Storage Layer]
-        Media[Media Sources]
-        Assets[Web Assets]
-    end
+    %% Management Flow
+    User -->|Runs Commands| CLI
+    CLI -->|Scans| Media
+    CLI -->|Writes| Manifest
+    CLI -->|Generates| Caddyfile
 
-    Browser -->|HTTPS| Caddy
-    Caddy -->|Serve| Assets
-    Caddy -->|Stream| Media
-    
-    LMS_CLI -->|Generate| Manifest
-    LMS_CLI -->|Configure| Caddyfile
-    Caddyfile -.->|Runtime Config| Caddy
-    Manifest -.->|Metadata| Assets
+    %% Request Flow
+    Browser -->|HTTPS Request| Caddy
+    Caddy -.->|Reads Config| Caddyfile
+    Caddy -->|Serves| WebAssets
+    Caddy -->|Streams| Media
+    WebAssets -.->|Fetches| Manifest
 ```
 
 ---
