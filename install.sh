@@ -126,6 +126,10 @@ install_dependencies() {
             error "Required dependency '$tool' is missing. The installer cannot continue. Please install it and try again."
         fi
     done
+
+    # Disable default system-wide Caddy service to avoid conflicts with LMS
+    log "Disabling default Caddy service (to prevent port conflicts)..."
+    sudo systemctl disable --now caddy >/dev/null 2>&1 || true
 }
 
 # Create a restricted system user to run the server
