@@ -118,6 +118,14 @@ install_dependencies() {
             warn "Unsupported distribution '$OS_ID'. Ensure python3, venv, git, caddy, acl, and ffmpeg are installed manually."
             ;;
     esac
+
+    # Hard verification of critical dependencies
+    local required_tools=("git" "python3" "caddy" "setfacl")
+    for tool in "${required_tools[@]}"; do
+        if ! command -v "$tool" &>/dev/null; then
+            error "Required dependency '$tool' is missing. The installer cannot continue. Please install it and try again."
+        fi
+    done
 }
 
 # Create a restricted system user to run the server
