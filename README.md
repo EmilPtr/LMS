@@ -24,15 +24,33 @@ LMS separates management logic from media delivery:
 
 ```mermaid
 graph TD
-    Browser[Web Browser] -->|HTTP/S| Caddy[Caddy Web Server]
-    Caddy -->|Serves| Web[Web Frontend Assets]
-    Caddy -->|Streams| Media[Media Sources]
+    subgraph Client
+        Browser[Web Browser]
+    end
+
+    subgraph Gateway [Gateway Layer]
+        Caddy[Caddy Web Server]
+    end
+
+    subgraph Backend [Management Layer]
+        LMS_CLI[LMS CLI]
+        Manifest[manifest.json]
+        Caddyfile[Caddyfile]
+    end
+
+    subgraph Storage [Storage Layer]
+        Media[Media Sources]
+        Assets[Web Assets]
+    end
+
+    Browser -->|HTTPS| Caddy
+    Caddy -->|Serve| Assets
+    Caddy -->|Stream| Media
     
-    LMS_CLI[LMS CLI] -->|Configures| Caddyfile[Caddyfile]
-    LMS_CLI -->|Scans| Media
-    LMS_CLI -->|Generates| Manifest[manifest.json]
-    
-    Web -->|Fetches| Manifest
+    LMS_CLI -->|Generate| Manifest
+    LMS_CLI -->|Configure| Caddyfile
+    Caddyfile -.->|Runtime Config| Caddy
+    Manifest -.->|Metadata| Assets
 ```
 
 ---
@@ -73,8 +91,12 @@ curl -sSL https://raw.githubusercontent.com/EmilPtr/LMS/prod/install.sh | bash
 6. **Service:** Installs and enables the `lms.service` Systemd unit.
 
 ### Finalization
+After the script completes, you must initialize and configure the server:
+
 1. **Initialize:** `lms init` (creates admin user and first media source).
-2. **Start Service:** `sudo systemctl start lms`
+2. **Setup Systemd:** `lms config setup-systemd`
+3. **Setup Fail2ban:** `lms config setup-fail2ban`
+4. **Start Service:** `sudo systemctl start lms`
 
 ---
 
