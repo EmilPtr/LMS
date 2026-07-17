@@ -56,13 +56,12 @@ def generate_caddyfile():
     lines.append("    }")
     lines.append("")
 
-    # Authenticated or LAN handling
+    # 3. Default Handling (Authenticated)
+    lines.append("    # Handle Authenticated Requests")
     lines.append("    handle {")
-    
-    # Basic auth (skip if LAN)
     if username and caddy_hash:
         lines.extend([
-            "        basic_auth not @lan {",
+            "        basic_auth {",
             f"            {username} {caddy_hash}",
             "        }",
             ""
