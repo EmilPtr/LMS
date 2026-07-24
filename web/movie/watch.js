@@ -57,7 +57,7 @@ async function initPlayer() {
         if (extLink) extLink.href = streamUrl;
         if (copyBtn) {
             copyBtn.onclick = () => {
-                navigator.clipboard.writeText(streamUrl).then(() => {
+                LMSPlayer.copyToClipboard(streamUrl).then(() => {
                     const originalText = copyBtn.textContent;
                     copyBtn.textContent = "Copied!";
                     setTimeout(() => {

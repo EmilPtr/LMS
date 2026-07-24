@@ -84,5 +84,45 @@ const LMSPlayer = {
                 }
             });
         }
+    },
+
+    /**
+     * Copies text to the clipboard, providing a fallback for non-secure contexts (HTTP over LAN).
+     * @param {string} text - The text to copy
+     * @returns {Promise} Resolves when copied, rejects on failure
+     */
+    copyToClipboard(text) {
+        // Modern approach for secure contexts (HTTPS/localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        }
+
+        // Fallback for non-secure contexts (HTTP over LAN)
+        return new Promise((resolve, reject) => {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+
+                // Ensure the textarea is off-screen but part of the DOM
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (successful) {
+                    resolve();
+                } else {
+                    reject(new Error("Unable to copy to clipboard"));
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 };
