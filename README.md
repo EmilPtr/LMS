@@ -10,6 +10,8 @@ LMS (Lime's Media Server) is a self-hosted media server for movies, TV shows, an
 
 LMS provides a web interface for browsing and playing media content from configured local directories. It uses a manifest-based architecture to catalog media without a traditional database engine.
 
+<img width="1859" height="955" alt="Screenshot_20260804_193451" src="https://github.com/user-attachments/assets/77849383-3e95-4077-b150-59d2abf8d5cf" />
+
 ### Core Features
 - **Web Interface:** Responsive frontend for media browsing and playback. Allows network streams with VLC in case of codec errors.
 - **Security Model:** Runs as a restricted system user with ACL-based filesystem access.
